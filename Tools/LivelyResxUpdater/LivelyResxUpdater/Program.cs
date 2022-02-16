@@ -10,6 +10,77 @@ namespace LivelyResxUpdater
         static void Main(string[] args)
         {
             //UpdateResX();
+            ConvertV1ToV2();
+            Console.Read();
+        }
+
+        public static void RenameXMLNode(XmlDocument doc, XmlNode oldRoot, string newname)
+        {
+            XmlNode newRoot = doc.CreateElement("data");
+            newRoot.Attributes.Append(doc.CreateAttribute("name"));
+            newRoot.Attributes.Append(doc.CreateAttribute("xml:space"));
+            newRoot.Attributes["name"].Value = newname;
+            newRoot.Attributes["xml:space"].Value = "preserve";
+            foreach (XmlNode childNode in oldRoot.ChildNodes)
+            {
+                newRoot.AppendChild(childNode.CloneNode(true));
+            }
+            XmlNode parent = oldRoot.ParentNode;
+            parent.InsertBefore(newRoot, oldRoot);
+            parent.RemoveChild(oldRoot);
+        }
+
+        public static void AddNewXmlNodeFromExisting(XmlDocument doc, XmlNode oldRoot, string newname)
+        {
+            XmlNode newRoot = doc.CreateElement("data");
+            newRoot.Attributes.Append(doc.CreateAttribute("name"));
+            newRoot.Attributes.Append(doc.CreateAttribute("xml:space"));
+            newRoot.Attributes["name"].Value = newname;
+            newRoot.Attributes["xml:space"].Value = "preserve";
+            foreach (XmlNode childNode in oldRoot.ChildNodes)
+            {
+                newRoot.AppendChild(childNode.CloneNode(true));
+            }
+            XmlNode parent = oldRoot.ParentNode;
+            parent.AppendChild(newRoot);
+        }
+
+        public static void ConvertV1ToV2()
+        {
+            var file = new XmlDocument();
+            file.Load("xml\\Resources.ar.resx");
+            var nodes = file.DocumentElement.ChildNodes;
+            Console.WriteLine("--------- Renaming nodes------------");
+            for (int i = 0; i < nodes.Count - 1; i++)
+            {
+                var oName = nodes[i].Attributes["name"]?.InnerText;
+                foreach (string line in File.ReadLines("xml\\map_rename.txt"))
+                {
+                    var item = line.Split(" ");
+                    if (oName == item[0])
+                    {
+                        RenameXMLNode(file, nodes[i], item[1]);
+                        break;
+                    }
+                }
+            }
+
+            Console.WriteLine("\n--------- Copying & Renaming ------------");
+            for (int i = 0; i < nodes.Count - 1; i++)
+            {
+                var oName = nodes[i].Attributes["name"]?.InnerText;
+                foreach (string line in File.ReadLines("xml\\map_copy.txt"))
+                {
+                    var item = line.Split(" ");
+                    if (oName == item[0])
+                    {
+                        AddNewXmlNodeFromExisting(file, nodes[i], item[1]);
+                        break;
+                    }
+                }
+            }
+            file.Save("xml\\final.resw");
+            Console.WriteLine("\nOperation completed...");
         }
 
         /// <summary>
